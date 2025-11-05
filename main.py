@@ -14,4 +14,13 @@ load_dotenv()
 
 API_KEY = os.getenv("OPENAI_API_KEY")
 
+@tool
+def write_json(filepath: str, data: dict) -> str:
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return f"Successfully wrote JSON data to '{filepath}' ({len(json.dumps(data))} characters)."
+    except Exception as e:
+        return f"Error writing JSON to : {str(e)}"
+
 
