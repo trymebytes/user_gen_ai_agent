@@ -23,4 +23,15 @@ def write_json(filepath: str, data: dict) -> str:
     except Exception as e:
         return f"Error writing JSON to : {str(e)}"
 
+def read_json(filepath: str) -> str:
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return json.dumps(data, indent=2, ensure_ascii=False)
+    except FileNotFoundError:
+        return f"File '{filepath}' not found."
+    except json.JSONDecodeError as e:
+        return f"Invalid JSON in file - {str(e)}"
+    except Exception as e:
+        return f"Error reading JSON from file: {str(e)}"
 
