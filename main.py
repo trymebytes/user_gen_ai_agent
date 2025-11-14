@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from langchain_core.tools import tool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -67,3 +67,37 @@ def generate_user_data() -> dict:
         })
     return {"users": users}
 
+TOOLS = [write_json, read_json, generate_user_data]
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+SYSTEM_MSG = (
+    "You are DataGen, a helpful assistant that generates sample data for applications. "
+    "To generate users, you can use the 'generate_user_data' tool. "
+    "To save data to a file, use the 'write_json' tool. "
+    "To read data from a file, use the 'read_json' tool. "
+    "If the user refers to 'those users' from a previous request, ask them to specify the details again."
+)
+
+agent = create_agent(model=llm, tools=TOOLS, system_prompt=SYSTEM_MSG)
+
+def run_agent(user_input: str, history: List[BaseMessage]) -> AIMessage:
+    """Single-turn agent runner with automatic tool execution via LangGraph."""
+    try:
+        result = agent.invoke(
+            {"messages": history + [HumanMessage(content=user_input)]},
+            config={"recursion_limit": 50}
+        )
+        return result["messages"][-1]
+    except Exception as e:
+        return AIMessage(content=f"Error during agent execution: {str(e)}")
+
+if __name__ == "__main__":
+    conversation_history: List[BaseMessage] = []
+    while True:
+        user_input = input("User: ")
+        if user_input.lower() in {"exit", "quit"}:
+            print("Exiting...")
+            break
+        ai_response = run_agent(user_input, conversation_history)
+        conversation_history.append(HumanMessage(content=user_input))
+        conversation_history.append(ai_response)
+        print(f"AI: {ai_response.content}")
